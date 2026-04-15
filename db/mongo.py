@@ -23,7 +23,7 @@ def init_indexes():
     tle_history.create_index("NORAD_CAT_ID")
     tle_history.create_index(
         "ingested_at",
-        expireAfterSeconds = 60 * 60 * 24 * 90 # 90-day TTL
+        expireAfterSeconds = 60 * 60 * 24 * 7 # 7-day TTL
     )
 
     print("Indexes created.")

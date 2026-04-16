@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Satellite Tracker</title>
+
+    <!-- CesiumJS -->
+    <link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" />
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+
+    <!-- satellite.js -->
+    <script src="js/satellite.min.js"></script>
+
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <div id="cesiumContainer"></div>
+
+    <div id="ui">
+        <h2>🛰 Satellite Tracker</h2>
+
+        <div class="section">
+            <label>Filter by Constellation</label>
+            <select id="constellationFilter">
+                <option value="">All</option>
+            </select>
+        </div>
+
+        <div class="section">
+            <div class="stat-row">
+                <span>Tracked Objects</span>
+                <span id="satCount">—</span>
+            </div>
+            <div class="stat-row">
+                <span>Constellation</span>
+                <span id="statConstellation">—</span>
+            </div>
+        </div>
+
+        <div class="section" id="selectedInfo" style="display:none;">
+            <label>Selected Satellite</label>
+            <div class="stat-row"><span>Name</span><span id="selName">—</span></div>
+            <div class="stat-row"><span>NORAD ID</span><span id="selNorad">—</span></div>
+            <div class="stat-row"><span>Altitude (km)</span><span id="selAlt">—</span></div>
+            <div class="stat-row"><span>Inclination (°)</span><span id="selInc">—</span></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

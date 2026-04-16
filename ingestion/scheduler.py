@@ -5,6 +5,10 @@ scheduler = BlockingScheduler()
 
 TIER_1 = [
     Group.SPACE_STATIONS,
+    Group.STARLINK,
+    Group.GPS,
+    Group.WEATHER,
+    Group.FENGYUN,
 ]
 
 def run_all():

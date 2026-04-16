@@ -31,7 +31,7 @@ def ingest_group(group: Group):
             {"NORAD_CAT_ID": norad_id},
             {"ELEMENT_SET_NO": 1}
         )
-        if last is None or last.get("ELEMENT_SET_NO") != record.get("ELEMENT_SET_NO"):
+        if last is None or last.get("TLE_LINE1") != record.get("TLE_LINE1"):
             history_ops.append({
                 **record,
                 "constellation": group.value,

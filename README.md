@@ -24,7 +24,7 @@ The pipeline ingests live TLE data from [CelesTrak](https://celestrak.org) every
 
 - Live 3D globe with real-time satellite movement at 60fps
 - Automatic TLE ingestion every 90 minutes via APScheduler
-- Filter satellites by constellation (Space Stations, Starlink, GPS, NOAA)
+- Filter satellites by constellation
 - Click any satellite to view its name, NORAD ID, altitude, and inclination
 - Color-coded constellations for at-a-glance identification
 - Historical TLE change tracking with automatic 7-day expiry
@@ -77,6 +77,8 @@ CelesTrak  →  (every 90 min)  →  Python ingestion script
 ```
 
 **`tle_history`** — append-only. A new document is inserted only when the element set has changed since the last ingestion. TTL index expires documents after 7 days.
+
+**`constellations`** — read-only, metadata for each constellation added once.
 
 ### Key Architectural Decision: Client-Side Propagation
 
@@ -135,6 +137,14 @@ python db/mongo.py
 
 This creates the required indexes on both collections. Safe to run multiple times.
 
+### 6. Seed the constellations collection
+
+```bash
+python -m db.seed_constellations
+```
+
+This creates and populates the constellations collection with metadata for each supported constellation.
+
 ### 6. Run the ingestion scheduler
 
 ```bash
@@ -163,11 +173,7 @@ Navigate to [http://localhost:8000](http://localhost:8000) in your browser.
 - **Zoom** with the scroll wheel or right-click drag
 - **Filter** satellites by constellation using the dropdown in the top-left panel
 - **Click** any satellite to view its details in the info panel
-- Satellites are color-coded by constellation:
-  - 🔵 Cyan — Space Stations
-  - ⚪ White — Starlink
-  - 🟡 Yellow — GPS
-  - 🟢 Green — NOAA Weather
+- Satellites are color-coded by constellation
 
 ---
 
@@ -178,7 +184,10 @@ satellite-tracker/
 ├── .env                      # not committed — see Setup
 ├── .gitignore
 ├── requirements.txt
+├── queries/
+│   └── queries.py            # complex queries for project requirement
 ├── db/
+│   ├── seed_constellations.py# constellation collection seed script
 │   └── mongo.py              # Atlas connection and index initialization
 ├── ingestion/
 │   ├── fetch.py              # CelesTrak TLE fetcher and parser

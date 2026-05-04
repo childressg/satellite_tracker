@@ -3,6 +3,20 @@ from pymongo import UpdateOne
 from db.mongo import satellites, tle_history
 from ingestion.fetch import pull_data, Group
 
+def parse_tle_fields(record: dict) -> dict:
+    """Extract key orbital elements from TLE Line 2 for analytical queries."""
+    try:
+        line2 = record["TLE_LINE2"]
+        record["INCLINATION"]  = float(line2[8:16].strip())
+        record["MEAN_MOTION"]  = float(line2[52:63].strip())
+        record["ECCENTRICITY"] = float("0." + line2[26:33].strip())
+        record["RA_OF_ASC_NODE"]    = float(line2[17:25].strip())
+        record["ARG_OF_PERICENTER"] = float(line2[34:42].strip())
+        record["MEAN_ANOMALY"]      = float(line2[43:51].strip())
+    except (ValueError, KeyError):
+        pass
+    return record
+
 # Ingest TLE data for a specific satellite group
 def ingest_group(group: Group):
     # Fetch latest TLE records from CelesTrak
@@ -14,18 +28,23 @@ def ingest_group(group: Group):
     history_ops = []    # Documents to insert into tle_history
 
     for record in records:
+        record = parse_tle_fields(record)
         norad_id = record["NORAD_CAT_ID"]
         now = datetime.now(timezone.utc)  # Current UTC timestamp
 
         # ── satellites collection ──────────────────────────────────────────────
         # Upsert (insert or update) the latest TLE for each satellite
         satellite_ops.append(UpdateOne(
-            {"NORAD_CAT_ID": norad_id},  # Match by NORAD ID
-            {"$set": {
-                **record,
-                "constellation": group.value,
-                "ingested_at": now,
-            }},
+            {"NORAD_CAT_ID": norad_id},
+            {
+                "$set": {
+                    **{k: v for k, v in record.items() if k != "constellation"},
+                    "ingested_at": now,
+                },
+                "$setOnInsert": {
+                    "constellation": group.value,
+                }
+            },
             upsert=True
         ))
 

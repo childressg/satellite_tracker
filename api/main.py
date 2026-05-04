@@ -33,12 +33,18 @@ def get_satellites(constellation: Optional[str] = Query(None)):
 
     # Define which fields to return (projection)
     fields = {
-        "_id": 0,  # Exclude MongoDB internal ID
+        "_id": 0,
         "NORAD_CAT_ID": 1,
         "OBJECT_NAME": 1,
         "TLE_LINE1": 1,
         "TLE_LINE2": 1,
         "constellation": 1,
+        "INCLINATION": 1,
+        "MEAN_MOTION": 1,
+        "ECCENTRICITY": 1,
+        "RA_OF_ASC_NODE": 1,
+        "ARG_OF_PERICENTER": 1,
+        "MEAN_ANOMALY": 1,
     }
 
     # Execute query and convert results to a list

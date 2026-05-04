@@ -4,14 +4,65 @@
 const API_BASE = "http://localhost:8000";
 
 // Cesium Ion access token (used for terrain, imagery, etc.)
-Cesium.Ion.defaultAccessToken = "YOUR_TOKEN_HERE";
+Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4NzZmOTM2MC1hODI5LTRjOGYtYTRjZS04MjRlOGM0ZGNkMWMiLCJpZCI6NDE4Nzc2LCJpYXQiOjE3NzYyOTE3NTJ9.t1pp4TfMnjZ12dm2K8jTeI_9wtSQ1ZQysbHKRbaoar0";
 
 // Color mapping per constellation
 const CONSTELLATION_COLORS = {
     "stations": Cesium.Color.CYAN,
+    "visual": Cesium.Color.LIGHTCYAN,
+    "analyst": Cesium.Color.MAGENTA,
+
+    "fengyun-1c-debris": Cesium.Color.DARKGRAY,
+    "iridium-33-debris": Cesium.Color.GRAY,
+    "cosmos-2251-debris": Cesium.Color.DIMGRAY,
+
+    "weather": Cesium.Color.BLUE,
+    "resource": Cesium.Color.GREEN,
+    "sarsat": Cesium.Color.YELLOWGREEN,
+    "dmc": Cesium.Color.DARKGREEN,
+    "tdrss": Cesium.Color.DARKBLUE,
+    "argos": Cesium.Color.TEAL,
+
+    "planet": Cesium.Color.PERU,
+    "spire": Cesium.Color.CHOCOLATE,
+
+    "geo": Cesium.Color.GOLD,
+    "intelsat": Cesium.Color.KHAKI,
+    "ses": Cesium.Color.BEIGE,
+    "eutelsat": Cesium.Color.WHEAT,
+    "telesat": Cesium.Color.TAN,
+
     "starlink": Cesium.Color.WHITE,
-    "gps-ops":  Cesium.Color.YELLOW,
-    "noaa":     Cesium.Color.GREEN,
+    "oneweb": Cesium.Color.HOTPINK,
+    "qianfan": Cesium.Color.fromCssColorString("#ff7f50"),   // coral
+    "hulianwang": Cesium.Color.fromCssColorString("#ff1493"), // deep pink
+    "kuiper": Cesium.Color.fromCssColorString("#8a2be2"),     // blue violet
+
+    "iridium-NEXT": Cesium.Color.SILVER,
+    "orbcomm": Cesium.Color.DARKORANGE,
+    "globalstar": Cesium.Color.ORANGERED,
+
+    "amateur": Cesium.Color.MEDIUMSPRINGGREEN,
+    "satnogs": Cesium.Color.SPRINGGREEN,
+
+    "x-comm": Cesium.Color.CRIMSON,
+    "other-comm": Cesium.Color.FIREBRICK,
+
+    "gnss": Cesium.Color.YELLOW,
+    "gps-ops": Cesium.Color.GOLDENROD,
+    "glo-ops": Cesium.Color.ORANGE,
+    "galileo": Cesium.Color.DODGERBLUE,
+    "beidou": Cesium.Color.RED,
+    "sbas": Cesium.Color.LIGHTYELLOW,
+
+    "science": Cesium.Color.PURPLE,
+    "geodetic": Cesium.Color.INDIGO,
+    "engineering": Cesium.Color.SLATEBLUE,
+    "education": Cesium.Color.LAVENDER,
+    "military": Cesium.Color.DARKRED,
+    "radar": Cesium.Color.MAROON,
+
+    "cubesat": Cesium.Color.AQUAMARINE
 };
 
 // Fallback color if constellation not listed
@@ -96,10 +147,9 @@ function buildSatrec(doc) {
 // Propagate satellite to current time and convert to Cesium position
 function propagate(satrec) {
     const now = new Date();
-
-    // Get ECI position/velocity
     const posVel = satellite.propagate(satrec, now);
-    if (!posVel.position) return null;
+
+    if (!posVel || !posVel.position) return null;
 
     // Convert to geodetic coordinates (lat/lon/alt)
     const gmst = satellite.gstime(now);
@@ -169,31 +219,56 @@ function rebuildEntities() {
 // Handle clicks on satellites
 viewer.screenSpaceEventHandler.setInputAction(click => {
     const picked = viewer.scene.pick(click.position);
-
-    // Ignore if nothing selected
     if (!Cesium.defined(picked) || !picked.id) return;
 
     const doc = picked.id.properties;
     if (!doc) return;
 
-    // Show satellite info panel
-    document.getElementById("selectedInfo").style.display = "block";
-    document.getElementById("selName").textContent  = doc.OBJECT_NAME?.getValue() ?? "—";
-    document.getElementById("selNorad").textContent = doc.NORAD_CAT_ID?.getValue() ?? "—";
-    document.getElementById("selInc").textContent   = doc.INCLINATION?.getValue()?.toFixed(2) ?? "—";
+    // Constants
+    const MU  = 3.986004418e14;
+    const R_E = 6371.0;
 
-    // Compute current altitude dynamically
-    const satrec = satellite.twoline2satrec(
-        doc.TLE_LINE1?.getValue(),
-        doc.TLE_LINE2?.getValue()
-    );
+    // Parse orbital elements directly from TLE Line 2
+    const tl2  = doc.TLE_LINE2?.getValue() ?? "";
+    const tl1  = doc.TLE_LINE1?.getValue() ?? "";
+    const inc  = tl2 ? parseFloat(tl2.substring(8,  16)) : 0;
+    const raan = tl2 ? parseFloat(tl2.substring(17, 25)) : 0;
+    const ecc  = tl2 ? parseFloat("0." + tl2.substring(26, 33)) : 0;
+    const mm   = tl2 ? parseFloat(tl2.substring(52, 63)) : null;
+    const constellation = doc.constellation?.getValue() ?? "—";
 
+    // Live altitude from propagation
+    let alt = null;
+    const satrec = satellite.twoline2satrec(tl1, tl2);
     const posVel = satellite.propagate(satrec, new Date());
-    if (posVel.position) {
+    if (posVel && posVel.position) {
         const gmst = satellite.gstime(new Date());
         const geo  = satellite.eciToGeodetic(posVel.position, gmst);
-        document.getElementById("selAlt").textContent = geo.height.toFixed(1);
+        alt = geo.height.toFixed(1);
     }
+
+    // Derived orbital parameters from mean motion
+    let period = null, apogee = null, perigee = null;
+    if (mm) {
+        const n  = mm * 2 * Math.PI / 86400;
+        const a  = Math.pow(MU / (n * n), 1/3) / 1000;
+        period  = (1440 / mm).toFixed(1);
+        apogee  = (a * (1 + ecc) - R_E).toFixed(1);
+        perigee = (a * (1 - ecc) - R_E).toFixed(1);
+    }
+
+    // Update UI
+    document.getElementById("selectedInfo").style.display   = "block";
+    document.getElementById("selName").textContent          = doc.OBJECT_NAME?.getValue() ?? "—";
+    document.getElementById("selNorad").textContent         = doc.NORAD_CAT_ID?.getValue() ?? "—";
+    document.getElementById("selConstellation").textContent = constellation;
+    document.getElementById("selAlt").textContent           = alt ?? "—";
+    document.getElementById("selPeriod").textContent        = period ?? "—";
+    document.getElementById("selInc").textContent           = inc ? inc.toFixed(2) : "—";
+    document.getElementById("selEcc").textContent           = ecc ? ecc.toFixed(6) : "—";
+    document.getElementById("selApogee").textContent        = apogee ?? "—";
+    document.getElementById("selPerigee").textContent       = perigee ?? "—";
+    document.getElementById("selRaan").textContent          = raan ? raan.toFixed(2) : "—";
 
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 

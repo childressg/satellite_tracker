@@ -6,17 +6,50 @@ BASE_URL = "https://celestrak.org/NORAD/elements/gp.php"
 
 # Enum representing available satellite groups on CelesTrak
 class Group(Enum):
-    SPACE_STATIONS = "stations"
-    STARLINK       = "starlink"
-    GPS            = "gps-ops"
-    WEATHER        = "weather"
-    GALILEO        = "galileo"
-    GLONASS        = "glo-ops"
-    BEIDOU         = "beidou"
-    ONEWEB         = "oneweb"
-    IRIDIUM_NEXT   = "iridium-NEXT"
-    CUBESATS       = "cubesat"
-    FENGYUN        = "fengyun-1c-debris"
+    STATIONS          = "stations"
+    VISUAL            = "visual"
+    ANALYST           = "analyst"
+    FENGYUN_1C_DEBRIS = "fengyun-1c-debris"
+    IRIDIUM_33_DEBRIS = "iridium-33-debris"
+    COSMOS_2251_DEBRIS= "cosmos-2251-debris"
+    WEATHER           = "weather"
+    RESOURCE          = "resource"
+    SARSAT            = "sarsat"
+    DMC               = "dmc"
+    TDRSS             = "tdrss"
+    ARGOS             = "argos"
+    PLANET            = "planet"
+    SPIRE             = "spire"
+    GEO               = "geo"
+    INTELSAT          = "intelsat"
+    SES               = "ses"
+    EUTELSAT          = "eutelsat"
+    TELESAT           = "telesat"
+    STARLINK          = "starlink"
+    ONEWEB            = "oneweb"
+    QIANFAN           = "qianfan"
+    HULIANWANG        = "hulianwang"
+    KUIPER            = "kuiper"
+    IRIDIUM_NEXT      = "iridium-NEXT"
+    ORBCOMM           = "orbcomm"
+    GLOBALSTAR        = "globalstar"
+    AMATEUR           = "amateur"
+    SATNOGS           = "satnogs"
+    X_COMM            = "x-comm"
+    OTHER_COMM        = "other-comm"
+    GNSS              = "gnss"
+    GPS_OPS           = "gps-ops"
+    GLO_OPS           = "glo-ops"
+    GALILEO           = "galileo"
+    BEIDOU            = "beidou"
+    SBAS              = "sbas"
+    SCIENCE           = "science"
+    GEODETIC          = "geodetic"
+    ENGINEERING       = "engineering"
+    EDUCATION         = "education"
+    MILITARY          = "military"
+    RADAR             = "radar"
+    CUBESAT           = "cubesat"
 
 
 # Parse raw TLE text into structured records
@@ -51,7 +84,7 @@ def pull_data(group: Group) -> list[dict]:
 
     try:
         # Send HTTP request with timeout
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=100)
         response.raise_for_status()  # Raise error for bad HTTP status
 
         # Parse response text into structured records
